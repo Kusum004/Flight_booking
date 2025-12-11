@@ -1,0 +1,61 @@
+const fs = require('fs');
+const path = require('path');
+// Load .env from the same directory as this script
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+const nodemailer = require('nodemailer');
+
+console.log("--- DIAGNOSTICS ---");
+console.log("Script location:", __dirname);
+console.log("Looking for .env file at:", path.join(__dirname, '.env'));
+
+// 1. Check if .env file exists
+if (fs.existsSync(path.join(__dirname, '.env'))) {
+    console.log(" .env file FOUND.");
+} else {
+    console.log(" .env file NOT FOUND.");
+    console.log(" Please make sure you created a file named '.env' inside the 'server' folder.");
+    process.exit(1);
+}
+
+// 2. Check variables
+const user = process.env.EMAIL_USER;
+const pass = process.env.EMAIL_PASS;
+
+console.log("User:", user ? user : "MISSING (Check EMAIL_USER in .env)");
+console.log("Password:", pass ? "****** (Loaded)" : " MISSING (Check EMAIL_PASS in .env)");
+
+if (!user || !pass) {
+    console.log("\nCRITICAL ERROR: Username or Password is missing.");
+    console.log("   The error 'Missing credentials for PLAIN' happens when these are empty.");
+    console.log("   Please edit your .env file and add your email and app password.");
+    process.exit(1);
+}
+
+console.log("--- ATTEMPTING EMAIL ---");
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: user,
+        pass: pass
+    },
+    debug: true, // Show debug output
+    logger: true // Log information to console
+});
+
+const mailOptions = {
+    from: user,
+    to: user, // Send to yourself
+    subject: 'Nodemailer Test',
+    text: 'If you see this, your email configuration is working perfectly!'
+};
+
+transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+        console.log('\nFINAL ERROR:');
+        console.log(error.message);
+        return;
+    }
+    console.log('\n Email sent successfully!');
+    console.log('Server response:', info.response);
+});
